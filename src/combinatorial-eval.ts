@@ -54,6 +54,8 @@ export class CombinatorialEval {
 
     generate( callback: CombinationReceiver, context?: ProgressiveEvaluation ) {
 
+        let self = this;
+        
         if ( callback === null || callback === undefined ) throw new Error( "Callback required" );
         if ( context === null || context === undefined ) context = ProgressiveEvaluation.from({},{});
 
@@ -70,25 +72,24 @@ export class CombinatorialEval {
                 i--;
             }
         }
-        if ( this._shuffle ) {
-            for ( let name in this._dimensions ) {
-                randomize( this._dimensions[name] );
-            }    
-        }
-
-        // if requested, pre-sort the dimensions to influence the resulting evaluation sequence
+        // pre-sort the dimensions to influence the resulting evaluation sequence
         function preSort(list) {
             let deps = {};
             list.forEach( v => {
                 deps[v.name] = Object.keys( v.dep ).length 
             });
             list.sort( (a,b) => 
-                deps[a.name] > deps[b.name] 
-                ? -1 
-                : deps[b.name] > deps[a.name] 
+                ( deps[a.name] > deps[b.name]
+                ? -1
+                : ( deps[b.name] > deps[a.name]
                   ? 1
-                  : 0 
-            )
+                  : ( a.name < b.name 
+                    ? -1
+                    : 1
+                    )
+                  )
+                )
+            );
         }
         let order = evaluationOrder( this._exceptions, context.values, true, preSort )
         if ( order.length < 1 ) 
@@ -107,8 +108,10 @@ export class CombinatorialEval {
         // generate the execution call chain, starting at the end of the list and working towards the front
         function step( name: string, values: Array<string>, valid: Variable, next: Function ) {
             return function( context: ProgressiveEvaluation ) {
-                for ( let i = 0 ; i < values.length ; i++ ) {
-                    let currentContext = context.extend( { [name]: new Variable( name ).value( values[i] ) } );
+                let list = values.slice();
+                if ( self._shuffle ) randomize(list);
+                for ( let i = 0 ; i < list.length ; i++ ) {
+                    let currentContext = context.extend( { [name]: new Variable( name ).value( list[i] ) } );
                     if ( valid.evaluate( currentContext.values ) ) 
                         next( currentContext );
                 }
