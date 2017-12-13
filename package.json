@@ -1,6 +1,6 @@
 {
   "name": "combinatorial-eval",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Generate every combination of possible values for some set of parameters",
   "main": "dist/index.js",
   "directories": {
